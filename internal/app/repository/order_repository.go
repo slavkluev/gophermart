@@ -82,9 +82,9 @@ func (r *OrderRepository) UpdateAccrual(ctx context.Context, accrual model.Accru
 
 	increaseBalanceStatement := `
 UPDATE "user"
-SET "user".balance = "user".balance + $1
-FROM "user"
-INNER JOIN "order" ON "user".id = "order".user_id
+SET balance = "user".balance + $1
+FROM "user" as u
+INNER JOIN "order" ON u.id = "order".user_id
 WHERE "order".number = $2
 `
 	_, err = tx.ExecContext(ctx, increaseBalanceStatement, accrual.Accrual, accrual.Order)
