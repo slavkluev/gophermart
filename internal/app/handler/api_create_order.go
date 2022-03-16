@@ -75,6 +75,5 @@ func (h *Handler) CreateOrder() http.HandlerFunc {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		return
 	}
 }

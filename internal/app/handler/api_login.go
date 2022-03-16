@@ -30,7 +30,7 @@ func (h *Handler) Login() http.HandlerFunc {
 		}
 
 		if app.Hash(credentials.Password) != user.PasswordHash {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
+			http.Error(w, "wrong password", http.StatusUnauthorized)
 			return
 		}
 

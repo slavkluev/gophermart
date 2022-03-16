@@ -69,6 +69,5 @@ func (h *Handler) Withdraw() http.HandlerFunc {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		return
 	}
 }
