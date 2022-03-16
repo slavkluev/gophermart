@@ -40,6 +40,12 @@ func (h *Handler) Register() http.HandlerFunc {
 			return
 		}
 
+		err = h.cookieAuthenticator.SetCookie(w, credentials.Login)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		w.WriteHeader(http.StatusOK)
 	}
 }
