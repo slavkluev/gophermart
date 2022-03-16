@@ -11,20 +11,31 @@ import (
 )
 
 type OrderRepository interface {
+	GetByNumber(ctx context.Context, number string) (model.Order, error)
 	UpdateAccrualStatus(ctx context.Context, accrual model.Accrual) error
+}
+
+type UserRepository interface {
+	IncreaseBalanceByUserID(ctx context.Context, userID uint64, amount float64) error
 }
 
 type PointAccrualService struct {
 	orders               chan string
 	accrualSystemAddress string
 	orderRepository      OrderRepository
+	userRepository       UserRepository
 }
 
-func NewPointAccrualService(accrualSystemAddress string, orderRepository OrderRepository) *PointAccrualService {
+func NewPointAccrualService(
+	accrualSystemAddress string,
+	orderRepository OrderRepository,
+	userRepository UserRepository,
+) *PointAccrualService {
 	return &PointAccrualService{
 		orders:               make(chan string, 100),
 		accrualSystemAddress: accrualSystemAddress,
 		orderRepository:      orderRepository,
+		userRepository:       userRepository,
 	}
 }
 
@@ -59,7 +70,17 @@ func (s *PointAccrualService) handleOrder(order string) error {
 			return err
 		}
 
+		order, err := s.orderRepository.GetByNumber(context.Background(), accrual.Order)
+		if err != nil {
+			return err
+		}
+
 		err = s.orderRepository.UpdateAccrualStatus(context.Background(), accrual)
+		if err != nil {
+			return err
+		}
+
+		err = s.userRepository.IncreaseBalanceByUserID(context.Background(), order.UserID, accrual.Accrual)
 		if err != nil {
 			return err
 		}
