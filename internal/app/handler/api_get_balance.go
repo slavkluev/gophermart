@@ -7,13 +7,7 @@ import (
 
 func (h *Handler) GetBalance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		login, err := h.cookieAuthenticator.GetLogin(r)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-
-		user, err := h.userRepository.GetByLogin(r.Context(), login)
+		user, err := h.getAuthUser(r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return

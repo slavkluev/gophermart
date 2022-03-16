@@ -5,22 +5,15 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"strconv"
 	"time"
 
+	"github.com/slavkluev/gophermart/internal/app"
 	"github.com/slavkluev/gophermart/internal/app/model"
-	"github.com/theplant/luhn"
 )
 
 func (h *Handler) CreateOrder() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		login, err := h.cookieAuthenticator.GetLogin(r)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-
-		user, err := h.userRepository.GetByLogin(r.Context(), login)
+		user, err := h.getAuthUser(r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
@@ -32,18 +25,13 @@ func (h *Handler) CreateOrder() http.HandlerFunc {
 			return
 		}
 
-		numberInt, err := strconv.Atoi(string(b))
+		number := string(b)
+		err = app.CheckOrderNumber(number)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 			return
 		}
 
-		if !luhn.Valid(numberInt) {
-			http.Error(w, "invalid order number", http.StatusUnprocessableEntity)
-			return
-		}
-
-		number := strconv.Itoa(numberInt)
 		newOrder := model.Order{
 			Number:     number,
 			Status:     model.NEW,

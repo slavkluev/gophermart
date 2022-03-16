@@ -3,7 +3,13 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
+
 	"github.com/slavkluev/gophermart/internal/app/model"
+)
+
+var (
+	ErrInsufficientBalance = errors.New("insufficient balance")
 )
 
 type WithdrawalRepository struct {
@@ -17,9 +23,36 @@ func CreateWithdrawalRepository(db *sql.DB) *WithdrawalRepository {
 }
 
 func (r *WithdrawalRepository) Create(ctx context.Context, withdrawal model.Withdrawal) error {
-	sqlStatement := `INSERT INTO withdrawal ("order", sum, processed_at, user_id) VALUES ($1, $2, $3, $4)`
-	_, err := r.db.ExecContext(ctx, sqlStatement, withdrawal.Order, withdrawal.Sum, withdrawal.ProcessedAt, withdrawal.UserID)
-	return err
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var balance float64
+	row := tx.QueryRowContext(ctx, `SELECT balance FROM "user" WHERE id = $1`, withdrawal.UserID)
+	err = row.Scan(&balance)
+	if err != nil {
+		return err
+	}
+
+	if balance < withdrawal.Sum {
+		return ErrInsufficientBalance
+	}
+
+	createWithdrawalStatement := `INSERT INTO withdrawal ("order", sum, processed_at, user_id) VALUES ($1, $2, $3, $4)`
+	_, err = tx.ExecContext(ctx, createWithdrawalStatement, withdrawal.Order, withdrawal.Sum, withdrawal.ProcessedAt, withdrawal.UserID)
+	if err != nil {
+		return err
+	}
+
+	updateBalanceStatement := `UPDATE "user" SET balance = balance - $1, withdrawn = withdrawn + $1 WHERE id = $2`
+	_, err = tx.ExecContext(ctx, updateBalanceStatement, withdrawal.Sum, withdrawal.UserID)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (r *WithdrawalRepository) GetByUserID(ctx context.Context, userID uint64) ([]model.Withdrawal, error) {

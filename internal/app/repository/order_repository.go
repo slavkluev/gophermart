@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+
 	"github.com/slavkluev/gophermart/internal/app/model"
 )
 
@@ -66,8 +67,30 @@ func (r *OrderRepository) GetByNumber(ctx context.Context, number string) (model
 	return order, nil
 }
 
-func (r *OrderRepository) UpdateAccrualStatus(ctx context.Context, accrual model.Accrual) error {
-	sqlStatement := `UPDATE "order" SET status = $1, accrual = $2 WHERE number = $3`
-	_, err := r.db.ExecContext(ctx, sqlStatement, accrual.Status, accrual.Accrual, accrual.Order)
-	return err
+func (r *OrderRepository) UpdateAccrual(ctx context.Context, accrual model.Accrual) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	updateOrderStatement := `UPDATE "order" SET status = $1, accrual = $2 WHERE number = $3`
+	_, err = tx.ExecContext(ctx, updateOrderStatement, accrual.Status, accrual.Accrual, accrual.Order)
+	if err != nil {
+		return err
+	}
+
+	increaseBalanceStatement := `
+UPDATE "user"
+SET "user".balance = "user".balance + $1
+FROM "user"
+INNER JOIN "order" ON "user".id = "order".user_id
+WHERE "order".number = $2
+`
+	_, err = tx.ExecContext(ctx, increaseBalanceStatement, accrual.Accrual, accrual.Order)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }

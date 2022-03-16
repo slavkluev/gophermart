@@ -2,24 +2,19 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
-	"strconv"
 	"time"
 
+	"github.com/slavkluev/gophermart/internal/app"
 	"github.com/slavkluev/gophermart/internal/app/model"
-	"github.com/theplant/luhn"
+	"github.com/slavkluev/gophermart/internal/app/repository"
 )
 
 func (h *Handler) Withdraw() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		login, err := h.cookieAuthenticator.GetLogin(r)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-
-		user, err := h.userRepository.GetByLogin(r.Context(), login)
+		user, err := h.getAuthUser(r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
@@ -31,39 +26,28 @@ func (h *Handler) Withdraw() http.HandlerFunc {
 			return
 		}
 
-		var withdrawal model.Withdrawal
+		withdrawal := &model.Withdrawal{
+			ProcessedAt: time.Now(),
+			UserID:      user.ID,
+		}
 		err = json.Unmarshal(b, &withdrawal)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		orderInt, err := strconv.Atoi(withdrawal.Order)
+		err = app.CheckOrderNumber(withdrawal.Order)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 			return
 		}
 
-		if !luhn.Valid(orderInt) {
-			http.Error(w, "invalid order number", http.StatusUnprocessableEntity)
-			return
-		}
-
-		if user.Balance < withdrawal.Sum {
-			http.Error(w, "insufficient balance", http.StatusPaymentRequired)
-			return
-		}
-
-		err = h.userRepository.DecreaseBalanceByUserID(r.Context(), user.ID, withdrawal.Sum)
+		err = h.withdrawalRepository.Create(r.Context(), *withdrawal)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		withdrawal.ProcessedAt = time.Now()
-		withdrawal.UserID = user.ID
-		err = h.withdrawalRepository.Create(r.Context(), withdrawal)
-		if err != nil {
+			if errors.As(err, &repository.ErrInsufficientBalance) {
+				http.Error(w, "insufficient balance", http.StatusPaymentRequired)
+				return
+			}
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

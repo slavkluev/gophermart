@@ -11,7 +11,6 @@ import (
 type UserRepository interface {
 	Create(ctx context.Context, user model.User) error
 	GetByLogin(ctx context.Context, login string) (model.User, error)
-	DecreaseBalanceByUserID(ctx context.Context, userID uint64, amount float64) error
 }
 
 type OrderRepository interface {
@@ -88,4 +87,18 @@ func applyMiddlewares(handler http.HandlerFunc, middlewares []Middleware) http.H
 	}
 
 	return handler
+}
+
+func (h *Handler) getAuthUser(r *http.Request) (model.User, error) {
+	login, err := h.cookieAuthenticator.GetLogin(r)
+	if err != nil {
+		return model.User{}, err
+	}
+
+	user, err := h.userRepository.GetByLogin(r.Context(), login)
+	if err != nil {
+		return model.User{}, err
+	}
+
+	return user, nil
 }

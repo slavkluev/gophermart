@@ -60,7 +60,7 @@ func main() {
 	orderRepository := repository.CreateOrderRepository(db)
 	withdrawalRepository := repository.CreateWithdrawalRepository(db)
 	cookieAuthenticator := service.NewCookieAuthenticator([]byte(cfg.SecretKey))
-	pointAccrualService := service.NewPointAccrualService(cfg.AccrualSystemAddress, orderRepository, userRepository)
+	pointAccrualService := service.NewPointAccrualService(cfg.AccrualSystemAddress, orderRepository)
 	pointAccrualService.Start()
 	authenticator := middleware.NewAuthenticator(cookieAuthenticator)
 
