@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"sort"
 )
 
 func (h *Handler) GetOrders() http.HandlerFunc {
@@ -26,10 +25,6 @@ func (h *Handler) GetOrders() http.HandlerFunc {
 				return
 			}
 		}
-
-		sort.Slice(orders, func(i, j int) bool {
-			return orders[i].UploadedAt.Before(orders[j].UploadedAt)
-		})
 
 		res, err := json.Marshal(orders)
 		if err != nil {

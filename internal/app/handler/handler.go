@@ -2,9 +2,11 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/slavkluev/gophermart/internal/app"
 	"github.com/slavkluev/gophermart/internal/app/model"
 )
 
@@ -25,7 +27,6 @@ type WithdrawalRepository interface {
 }
 
 type CookieAuthenticator interface {
-	GetLogin(r *http.Request) (string, error)
 	SetCookie(w http.ResponseWriter, login string) error
 }
 
@@ -90,9 +91,9 @@ func applyMiddlewares(handler http.HandlerFunc, middlewares []Middleware) http.H
 }
 
 func (h *Handler) getAuthUser(r *http.Request) (model.User, error) {
-	login, err := h.cookieAuthenticator.GetLogin(r)
-	if err != nil {
-		return model.User{}, err
+	login, ok := app.LoginFromContext(r.Context())
+	if !ok {
+		return model.User{}, errors.New("unauthorized")
 	}
 
 	user, err := h.userRepository.GetByLogin(r.Context(), login)

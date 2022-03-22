@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"sort"
 )
 
 func (h *Handler) GetWithdrawals() http.HandlerFunc {
@@ -26,10 +25,6 @@ func (h *Handler) GetWithdrawals() http.HandlerFunc {
 				return
 			}
 		}
-
-		sort.Slice(withdrawals, func(i, j int) bool {
-			return withdrawals[i].ProcessedAt.Before(withdrawals[j].ProcessedAt)
-		})
 
 		res, err := json.Marshal(withdrawals)
 		if err != nil {

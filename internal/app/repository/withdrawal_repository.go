@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"sort"
 
 	"github.com/slavkluev/gophermart/internal/app/model"
 )
@@ -82,6 +83,10 @@ func (r *WithdrawalRepository) GetByUserID(ctx context.Context, userID uint64) (
 	if len(withdrawals) == 0 {
 		return nil, sql.ErrNoRows
 	}
+
+	sort.Slice(withdrawals, func(i, j int) bool {
+		return withdrawals[i].ProcessedAt.Before(withdrawals[j].ProcessedAt)
+	})
 
 	return withdrawals, nil
 }

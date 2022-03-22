@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"sort"
 
 	"github.com/slavkluev/gophermart/internal/app/model"
 )
@@ -50,6 +51,10 @@ func (r *OrderRepository) GetByUserID(ctx context.Context, userID uint64) ([]mod
 	if len(orders) == 0 {
 		return nil, sql.ErrNoRows
 	}
+
+	sort.Slice(orders, func(i, j int) bool {
+		return orders[i].UploadedAt.Before(orders[j].UploadedAt)
+	})
 
 	return orders, nil
 }

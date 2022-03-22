@@ -1,9 +1,11 @@
 package app
 
 import (
+	"context"
 	"crypto/sha512"
 	"encoding/hex"
 	"errors"
+	"github.com/slavkluev/gophermart/internal/app/middleware"
 	"strconv"
 
 	"github.com/theplant/luhn"
@@ -26,4 +28,9 @@ func CheckOrderNumber(number string) error {
 	}
 
 	return nil
+}
+
+func LoginFromContext(ctx context.Context) (string, bool) {
+	u, ok := ctx.Value(middleware.ContextLoginKey).(string)
+	return u, ok
 }
