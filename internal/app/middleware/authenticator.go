@@ -5,7 +5,9 @@ import (
 	"net/http"
 )
 
-const ContextLoginKey string = "login"
+type ContextKey string
+
+const ContextLoginKey ContextKey = "login"
 
 type CookieAuthenticatorChecker interface {
 	GetLogin(r *http.Request) (string, error)

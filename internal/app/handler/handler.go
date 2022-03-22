@@ -46,7 +46,6 @@ type Handler struct {
 	withdrawalRepository WithdrawalRepository
 	cookieAuthenticator  CookieAuthenticator
 	pointAccrualService  PointAccrualService
-	authenticator        Middleware
 }
 
 func NewHandler(
@@ -67,7 +66,6 @@ func NewHandler(
 		withdrawalRepository: withdrawalRepository,
 		cookieAuthenticator:  cookieAuthenticator,
 		pointAccrualService:  pointAccrualService,
-		authenticator:        authenticator,
 	}
 
 	h.Post("/api/user/register", applyMiddlewares(h.Register(), middlewares))
