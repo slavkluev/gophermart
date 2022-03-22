@@ -34,9 +34,3 @@ func (r *UserRepository) GetByLogin(ctx context.Context, login string) (model.Us
 
 	return user, nil
 }
-
-func (r *UserRepository) IncreaseBalanceByUserID(ctx context.Context, userID uint64, amount float64) error {
-	sqlStatement := `UPDATE "user" SET balance = balance + $1 WHERE id = $2`
-	_, err := r.db.ExecContext(ctx, sqlStatement, amount, userID)
-	return err
-}
